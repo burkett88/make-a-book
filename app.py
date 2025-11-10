@@ -163,7 +163,7 @@ def main():
                         # Create chapter generator using the same LM configuration
                         import dspy
                         anthropic_lm = dspy.LM(
-                            model="anthropic/claude-haiku-4-5-20251001",
+                            model="anthropic/claude-sonnet-4-5-20250929",
                             api_key=os.getenv("ANTHROPIC_API_KEY")
                         )
                         chapter_generator = ChapterCreator(anthropic_lm)
@@ -276,6 +276,21 @@ def main():
             include_outline = st.checkbox("Include outline in audiobook", value=True)
             
             chapter_breaks = st.checkbox("Add pauses between chapters", value=True)
+        
+        # Voice information
+        st.subheader("Voice Selection Guide")
+        
+        st.markdown("""
+        **Voice Characteristics:**
+        - **Alloy**: Balanced, neutral tone
+        - **Echo**: Calm, soothing voice  
+        - **Fable**: Warm, storytelling voice
+        - **Onyx**: Deep, authoritative voice
+        - **Nova**: Bright, energetic voice
+        - **Shimmer**: Soft, gentle voice
+        
+        *Each voice has its own natural speaking style optimized for storytelling.*
+        """)
         
         # Audio generation section
         st.subheader("Generate Audio")

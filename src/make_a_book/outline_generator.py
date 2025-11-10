@@ -14,7 +14,7 @@ class OutlineCreator:
     def __init__(self):
         # Configure DSPy with Anthropic
         anthropic_lm = dspy.LM(
-            model="anthropic/claude-haiku-4-5-20251001",
+            model="anthropic/claude-sonnet-4-5-20250929",
             api_key=os.getenv("ANTHROPIC_API_KEY")
         )
         dspy.settings.configure(lm=anthropic_lm)
