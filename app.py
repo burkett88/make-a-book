@@ -277,20 +277,46 @@ def main():
             
             chapter_breaks = st.checkbox("Add pauses between chapters", value=True)
         
-        # Voice information
-        st.subheader("Voice Selection Guide")
+        # Voice customization
+        st.subheader("Voice Customization")
         
-        st.markdown("""
-        **Voice Characteristics:**
-        - **Alloy**: Balanced, neutral tone
-        - **Echo**: Calm, soothing voice  
-        - **Fable**: Warm, storytelling voice
-        - **Onyx**: Deep, authoritative voice
-        - **Nova**: Bright, energetic voice
-        - **Shimmer**: Soft, gentle voice
+        # Voice selection guide (collapsed by default)
+        with st.expander("Voice Characteristics Guide"):
+            st.markdown("""
+            **Voice Options:**
+            - **Alloy**: Balanced, neutral tone
+            - **Echo**: Calm, soothing voice  
+            - **Fable**: Warm, storytelling voice
+            - **Onyx**: Deep, authoritative voice
+            - **Nova**: Bright, energetic voice
+            - **Shimmer**: Soft, gentle voice
+            """)
         
-        *Each voice has its own natural speaking style optimized for storytelling.*
-        """)
+        # Voice instructions
+        default_instructions = ("Read with excitement and enthusiasm! You're a friendly storyteller reading to children. Use varied intonation, dramatic pauses for suspense, and express emotions clearly. Make it engaging and fun!")
+        
+        voice_instructions = st.text_area(
+            "Voice Instructions",
+            value=default_instructions,
+            height=120,
+            help="Customize how the narrator should read your book. You can specify accent, tone, energy level, and speaking style."
+        )
+        
+        # Example instructions
+        with st.expander("Example Instructions"):
+            st.markdown("""
+            **Child-Friendly Examples:**
+            - "Read with high energy and excitement, like telling a bedtime story to a 5-year-old"
+            - "Use a gentle, soothing voice with a slight British accent, perfect for bedtime"
+            - "Dramatic and theatrical, with exaggerated emotions for comedy and suspense"
+            - "Warm and nurturing voice, speaking slowly and clearly for young listeners"
+            
+            **Style Controls:**
+            - Accent: "with a British accent", "in a Southern drawl"
+            - Energy: "high-energy and enthusiastic", "calm and soothing"
+            - Pace: "speak slowly and clearly", "speak at a normal pace"
+            - Emotion: "express emotions dramatically", "use varied intonation"
+            """)
         
         # Audio generation section
         st.subheader("Generate Audio")
@@ -322,7 +348,8 @@ def main():
                             chapters=st.session_state.chapters,
                             voice=voice_option,
                             speed=speed,
-                            include_outline=include_outline
+                            include_outline=include_outline,
+                            voice_instructions=voice_instructions
                         )
                         
                         progress_bar.progress(100)
@@ -378,15 +405,22 @@ def main():
                             sentences = preview_text.split('. ')
                             preview_text = '. '.join(sentences[:3]) + '.'
                         
-                        # Generate audio
+                        # Generate audio with instructions
                         client = OpenAI(api_key=openai_key)
                         
-                        response = client.audio.speech.create(
-                            model="tts-1",
-                            voice=voice_option,
-                            input=preview_text,
-                            speed=speed
-                        )
+                        # Prepare API parameters
+                        api_params = {
+                            "model": "gpt-4o-mini-tts",
+                            "voice": voice_option,
+                            "input": preview_text,
+                            "speed": speed
+                        }
+                        
+                        # Add instructions if provided
+                        if voice_instructions and voice_instructions.strip():
+                            api_params["instructions"] = voice_instructions
+                        
+                        response = client.audio.speech.create(**api_params)
                         
                         # Save to temporary file
                         with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as temp_file:

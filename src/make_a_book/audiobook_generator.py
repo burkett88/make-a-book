@@ -65,21 +65,32 @@ class AudiobookGenerator:
     
     def generate_chapter_audio(self, chapter_text: str, chapter_num: int, 
                              book_folder: Path, voice: str = "alloy", 
-                             speed: float = 1.0) -> str:
+                             speed: float = 1.0, voice_instructions: str = None) -> str:
         """Generate audio for a single chapter."""
         chunks = self.chunk_text(chapter_text)
         audio_files = []
+        
+        # Default child-friendly instructions
+        default_instructions = ("Read with excitement and enthusiasm! You're a friendly storyteller reading to children. Use varied intonation, dramatic pauses for suspense, and express emotions clearly. Make it engaging and fun!")
+        instructions = voice_instructions if voice_instructions else default_instructions
         
         for i, chunk in enumerate(chunks):
             chunk_filename = book_folder / "audio" / f"chapter_{chapter_num:02d}_part_{i+1:02d}.mp3"
             
             try:
-                response = self.client.audio.speech.create(
-                    model="tts-1",
-                    voice=voice,
-                    input=chunk,
-                    speed=speed
-                )
+                # Prepare API parameters
+                api_params = {
+                    "model": "gpt-4o-mini-tts",
+                    "voice": voice,
+                    "input": chunk,
+                    "speed": speed
+                }
+                
+                # Add instructions if provided
+                if instructions:
+                    api_params["instructions"] = instructions
+                
+                response = self.client.audio.speech.create(**api_params)
                 
                 response.stream_to_file(chunk_filename)
                 audio_files.append(chunk_filename)
@@ -153,7 +164,7 @@ class AudiobookGenerator:
     
     def generate_audiobook(self, book_title: str, outline: str, chapters: List[str],
                           voice: str = "alloy", speed: float = 1.0, 
-                          include_outline: bool = True) -> Tuple[str, List[str]]:
+                          include_outline: bool = True, voice_instructions: str = None) -> Tuple[str, List[str]]:
         """Generate complete audiobook with organized folder structure."""
         
         # Create book folder
@@ -167,7 +178,7 @@ class AudiobookGenerator:
         # Generate outline audio if requested
         if include_outline:
             outline_audio = self.generate_chapter_audio(
-                f"Book Outline. {outline}", 0, book_folder, voice, speed
+                f"Book Outline. {outline}", 0, book_folder, voice, speed, voice_instructions
             )
             if outline_audio:
                 # Rename to outline
@@ -178,7 +189,7 @@ class AudiobookGenerator:
         # Generate chapter audio
         for i, chapter in enumerate(chapters, 1):
             chapter_audio = self.generate_chapter_audio(
-                chapter, i, book_folder, voice, speed
+                chapter, i, book_folder, voice, speed, voice_instructions
             )
             if chapter_audio:
                 audio_files.append(chapter_audio)
