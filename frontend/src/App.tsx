@@ -18,6 +18,7 @@ const STEPS = [
 function App() {
   const [currentStep, setCurrentStep] = useState(1);
   const [steps, setSteps] = useState(STEPS);
+  const [showWorkflowModal, setShowWorkflowModal] = useState(true);
   const [bookData, setBookData] = useState<BookData>({
     title: '',
     prompt: '',
@@ -96,26 +97,24 @@ function App() {
 
   return (
     <div className="app">
-      <header className="topbar reveal">
-        <div className="brand">
-          <span className="brand-mark">✶</span>
-          <div>
-            <div className="brand-title">Book Foundry</div>
-            <div className="brand-subtitle">AI Editorial Studio</div>
-          </div>
-        </div>
-        <div className="topbar-actions">
-          <button type="button" className="btn btn-ghost">Documentation</button>
-          <button type="button" className="btn btn-primary">New Project</button>
-        </div>
-      </header>
-
-      <main className="layout">
-        <aside className="sidebar stagger">
-          <div className="sidebar-card">
-            <p className="eyebrow">Workflow</p>
-            <h2 className="sidebar-title">Turn a prompt into a publish-ready book.</h2>
-            <p className="sidebar-copy">
+      {showWorkflowModal && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal-card reveal">
+            <div className="modal-header">
+              <div>
+                <p className="eyebrow">Workflow</p>
+                <h2 className="modal-title">Turn a prompt into a publish-ready book.</h2>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setShowWorkflowModal(false)}
+                aria-label="Close workflow overview"
+              >
+                Close
+              </button>
+            </div>
+            <p className="modal-copy">
               Outline, draft, and voice your story with a production-grade workflow that keeps you in control.
             </p>
             <div className="metric-grid">
@@ -132,31 +131,56 @@ function App() {
                 <span className="metric-value">Editorial</span>
               </div>
             </div>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setShowWorkflowModal(false)}
+              >
+                Get started
+              </button>
+            </div>
           </div>
+        </div>
+      )}
 
-          <div className="sidebar-card">
+      <header className="topbar reveal">
+        <div className="topbar-main">
+          <div className="brand">
+            <span className="brand-mark">✶</span>
+            <div>
+              <div className="brand-title">Book Foundry</div>
+              <div className="brand-subtitle">AI Editorial Studio</div>
+            </div>
+          </div>
+          <div className="topbar-actions">
+            <button
+              type="button"
+              className="icon-button"
+              onClick={() => setShowWorkflowModal(true)}
+              aria-label="Open workflow overview"
+              title="Workflow overview"
+            >
+              ?
+            </button>
+          </div>
+        </div>
+
+        <section className="progress-banner">
+          <div className="progress-banner-header">
             <p className="eyebrow">Progress</p>
-            <ProgressBar currentStep={currentStep} steps={steps} />
+            <span className="progress-summary">Step {currentStep} of {steps.length}</span>
           </div>
+          <ProgressBar currentStep={currentStep} steps={steps} />
+        </section>
+      </header>
 
-          <div className="sidebar-card">
-            <p className="eyebrow">Guidance</p>
-            <ul className="tip-list">
-              <li>Start with a strong premise and a clear reader promise.</li>
-              <li>Use feedback to push for clarity and pacing.</li>
-              <li>Lock the outline before drafting chapters.</li>
-            </ul>
-          </div>
-        </aside>
-
-        <section className="content">
+      <main className="layout">
+        <section className="content content-full">
           <div className="content-header reveal">
             <div>
               <p className="eyebrow">Project</p>
               <h1 className="page-title">{bookData.title || 'Untitled Book'}</h1>
-              <p className="page-subtitle">
-                Shape the narrative arc, refine the outline, and prepare for chapter drafting.
-              </p>
             </div>
             <div className="header-actions">
               <button type="button" className="btn btn-secondary">Save Draft</button>

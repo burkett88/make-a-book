@@ -14,25 +14,31 @@ interface ProgressBarProps {
 export const ProgressBar: FC<ProgressBarProps> = ({ currentStep, steps }) => {
   return (
     <div className="progress-rail">
-      {steps.map((step, index) => {
+      {steps.map((step) => {
         const state = step.completed
           ? 'completed'
           : currentStep === step.id
             ? 'current'
             : 'upcoming';
 
+        const statusLabel = step.completed
+          ? 'Completed'
+          : currentStep === step.id
+            ? 'In progress'
+            : 'Up next';
+
         return (
-          <div key={step.id} className={`progress-step ${state}`}>
+          <div
+            key={step.id}
+            className={`progress-step ${state}`}
+            title={`${step.title} · ${statusLabel}`}
+          >
             <div className="step-marker">
               {step.completed ? '✓' : step.id}
             </div>
             <div className="step-labels">
               <span className="step-title">{step.title}</span>
-              <span className="step-status">
-                {step.completed ? 'Completed' : currentStep === step.id ? 'In progress' : 'Up next'}
-              </span>
             </div>
-            {index < steps.length - 1 && <div className="step-connector" />}
           </div>
         );
       })}
