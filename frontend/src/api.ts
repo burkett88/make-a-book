@@ -46,7 +46,7 @@ interface AudiobookResponse {
   audio_files: string[];
 }
 
-async function handleResponse(response: Response): Promise<OutlineResponse> {
+async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let message = 'Request failed';
     try {
@@ -60,7 +60,7 @@ async function handleResponse(response: Response): Promise<OutlineResponse> {
     throw new Error(message);
   }
 
-  return response.json() as Promise<OutlineResponse>;
+  return response.json() as Promise<T>;
 }
 
 export async function generateOutline(payload: OutlineRequest): Promise<string> {
@@ -72,7 +72,7 @@ export async function generateOutline(payload: OutlineRequest): Promise<string> 
     body: JSON.stringify(payload),
   });
 
-  const data = await handleResponse(response);
+  const data = await handleResponse<OutlineResponse>(response);
   return data.outline;
 }
 
@@ -85,7 +85,7 @@ export async function regenerateOutline(payload: OutlineFeedbackRequest): Promis
     body: JSON.stringify(payload),
   });
 
-  const data = await handleResponse(response);
+  const data = await handleResponse<OutlineResponse>(response);
   return data.outline;
 }
 
@@ -98,7 +98,7 @@ export async function generateChapters(payload: ChaptersRequest): Promise<string
     body: JSON.stringify(payload),
   });
 
-  const data = await handleResponse(response) as ChaptersResponse;
+  const data = await handleResponse<ChaptersResponse>(response);
   return data.chapters;
 }
 
@@ -144,6 +144,6 @@ export async function generateAudiobook(payload: AudiobookRequest): Promise<Audi
     }),
   });
 
-  const data = await handleResponse(response) as AudiobookResponse;
+  const data = await handleResponse<AudiobookResponse>(response);
   return data;
 }
