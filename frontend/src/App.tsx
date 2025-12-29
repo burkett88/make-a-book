@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { ProgressBar } from './components/ProgressBar';
 import { BookSetupStep } from './steps/BookSetupStep';
 import { OutlineReviewStep } from './steps/OutlineReviewStep';
+import { ChapterGenerationStep } from './steps/ChapterGenerationStep';
+import { VoiceSetupStep } from './steps/VoiceSetupStep';
+import { AudiobookStep } from './steps/AudiobookStep';
 import type { BookData } from './types';
 
 const STEPS = [
@@ -63,24 +66,28 @@ function App() {
         );
       case 3:
         return (
-          <div className="text-center p-8">
-            <h2 className="text-2xl font-bold mb-4">Chapter Generation (Coming Soon)</h2>
-            <p className="text-gray-600">This step will generate chapters with progress tracking.</p>
-          </div>
+          <ChapterGenerationStep
+            bookData={bookData}
+            onUpdate={updateBookData}
+            onNext={goToNextStep}
+            onBack={goToPreviousStep}
+          />
         );
       case 4:
         return (
-          <div className="text-center p-8">
-            <h2 className="text-2xl font-bold mb-4">Voice Setup (Coming Soon)</h2>
-            <p className="text-gray-600">This step will configure voice settings and preview.</p>
-          </div>
+          <VoiceSetupStep
+            bookData={bookData}
+            onUpdate={updateBookData}
+            onNext={goToNextStep}
+            onBack={goToPreviousStep}
+          />
         );
       case 5:
         return (
-          <div className="text-center p-8">
-            <h2 className="text-2xl font-bold mb-4">Audiobook Creation (Coming Soon)</h2>
-            <p className="text-gray-600">This step will generate the final audiobook.</p>
-          </div>
+          <AudiobookStep
+            bookData={bookData}
+            onBack={goToPreviousStep}
+          />
         );
       default:
         return null;
@@ -88,42 +95,80 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen py-12 px-4">
-      {/* Floating Background Shapes */}
-      <div className="floating-shapes">
-        <div className="shape"></div>
-        <div className="shape"></div>
-        <div className="shape"></div>
-      </div>
-
-      {/* Header */}
-      <div className="text-center mb-12 fade-in">
-        <h1 className="header-title gradient-text">
-          ✨ AI Book Generator
-        </h1>
-        <p className="header-subtitle">
-          Create amazing books and audiobooks with the power of AI
-        </p>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="progress-container fade-in">
-        <ProgressBar currentStep={currentStep} steps={steps} />
-      </div>
-
-      {/* Current Step */}
-      <div className="mb-8 fade-in">
-        {renderCurrentStep()}
-      </div>
-
-      {/* Debug Info */}
-      <div className="container mt-8">
-        <div className="debug-panel">
-          <p><strong>Current Step:</strong> {currentStep}</p>
-          <p><strong>Book Title:</strong> {bookData.title || 'Not set'}</p>
-          <p><strong>Has Outline:</strong> {bookData.outline ? 'Yes' : 'No'}</p>
+    <div className="app">
+      <header className="topbar reveal">
+        <div className="brand">
+          <span className="brand-mark">✶</span>
+          <div>
+            <div className="brand-title">Book Foundry</div>
+            <div className="brand-subtitle">AI Editorial Studio</div>
+          </div>
         </div>
-      </div>
+        <div className="topbar-actions">
+          <button type="button" className="btn btn-ghost">Documentation</button>
+          <button type="button" className="btn btn-primary">New Project</button>
+        </div>
+      </header>
+
+      <main className="layout">
+        <aside className="sidebar stagger">
+          <div className="sidebar-card">
+            <p className="eyebrow">Workflow</p>
+            <h2 className="sidebar-title">Turn a prompt into a publish-ready book.</h2>
+            <p className="sidebar-copy">
+              Outline, draft, and voice your story with a production-grade workflow that keeps you in control.
+            </p>
+            <div className="metric-grid">
+              <div className="metric">
+                <span className="metric-label">Est. Time</span>
+                <span className="metric-value">6-10 min</span>
+              </div>
+              <div className="metric">
+                <span className="metric-label">Output</span>
+                <span className="metric-value">Markdown + Audio</span>
+              </div>
+              <div className="metric">
+                <span className="metric-label">Quality Mode</span>
+                <span className="metric-value">Editorial</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="sidebar-card">
+            <p className="eyebrow">Progress</p>
+            <ProgressBar currentStep={currentStep} steps={steps} />
+          </div>
+
+          <div className="sidebar-card">
+            <p className="eyebrow">Guidance</p>
+            <ul className="tip-list">
+              <li>Start with a strong premise and a clear reader promise.</li>
+              <li>Use feedback to push for clarity and pacing.</li>
+              <li>Lock the outline before drafting chapters.</li>
+            </ul>
+          </div>
+        </aside>
+
+        <section className="content">
+          <div className="content-header reveal">
+            <div>
+              <p className="eyebrow">Project</p>
+              <h1 className="page-title">{bookData.title || 'Untitled Book'}</h1>
+              <p className="page-subtitle">
+                Shape the narrative arc, refine the outline, and prepare for chapter drafting.
+              </p>
+            </div>
+            <div className="header-actions">
+              <button type="button" className="btn btn-secondary">Save Draft</button>
+              <button type="button" className="btn btn-primary">Publish</button>
+            </div>
+          </div>
+
+          <div className="content-body reveal">
+            {renderCurrentStep()}
+          </div>
+        </section>
+      </main>
     </div>
   );
 }

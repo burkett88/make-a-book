@@ -186,10 +186,10 @@ class AudiobookGenerator:
                 Path(outline_audio).rename(outline_path)
                 audio_files.append(str(outline_path))
         
-        # Generate chapter audio
-        for i, chapter in enumerate(chapters, 1):
+        # Generate chapter audio (first chapter only for now)
+        if chapters:
             chapter_audio = self.generate_chapter_audio(
-                chapter, i, book_folder, voice, speed, voice_instructions
+                chapters[0], 1, book_folder, voice, speed, voice_instructions
             )
             if chapter_audio:
                 audio_files.append(chapter_audio)

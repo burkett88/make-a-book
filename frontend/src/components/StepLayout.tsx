@@ -8,16 +8,20 @@ interface StepLayoutProps {
 
 export const StepLayout: FC<StepLayoutProps> = ({ title, description, children }) => {
   return (
-    <div className="container">
-      <div className="card">
-        <div className="text-center mb-8">
-          <h2 className="step-title gradient-text">{title}</h2>
+    <div className="panel step-panel">
+      <div className="panel-header">
+        <div>
+          <p className="eyebrow">Studio Step</p>
+          <h2 className="step-title">{title}</h2>
           <p className="step-description">{description}</p>
         </div>
-        
-        <div className="space-y-8">
-          {children}
+        <div className="panel-meta">
+          <span className="status-pill">Draft Mode</span>
         </div>
+      </div>
+
+      <div className="panel-body">
+        {children}
       </div>
     </div>
   );

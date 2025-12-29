@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { StepLayout } from '../components/StepLayout';
 import type { BookData } from '../types';
+import { regenerateOutline } from '../api';
 
 interface OutlineReviewStepProps {
   bookData: BookData;
@@ -12,43 +13,27 @@ interface OutlineReviewStepProps {
 export const OutlineReviewStep = ({ bookData, onUpdate, onNext, onBack }: OutlineReviewStepProps) => {
   const [feedback, setFeedback] = useState('');
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleRegenerate = async () => {
+    if (!feedback.trim()) {
+      setError('Add feedback before regenerating.');
+      return;
+    }
+
     setIsRegenerating(true);
+    setError(null);
     try {
-      // TODO: Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock updated outline
-      const updatedOutline = `
-# ${bookData.title}
-
-## Chapter 1: The Beginning
-A compelling introduction that sets the stage for our journey, incorporating your feedback: "${feedback}"
-
-## Chapter 2: Building Foundation
-Essential concepts and frameworks that will guide the reader through the core material.
-
-## Chapter 3: Deep Dive
-Advanced techniques and methodologies with practical examples.
-
-## Chapter 4: Implementation
-Real-world applications and case studies demonstrating the concepts in action.
-
-## Chapter 5: Mastery
-Advanced strategies and expert insights for achieving excellence.
-
-## Chapter 6: Future Perspectives
-Looking ahead at trends and developments in this field.
-
-## Conclusion
-Bringing everything together with actionable takeaways and next steps.
-      `.trim();
-      
+      const updatedOutline = await regenerateOutline({
+        title: bookData.title,
+        prompt: bookData.prompt,
+        feedback,
+      });
       onUpdate({ outline: updatedOutline });
       setFeedback('');
     } catch (error) {
-      console.error('Error regenerating outline:', error);
+      const message = error instanceof Error ? error.message : 'Error regenerating outline';
+      setError(message);
     } finally {
       setIsRegenerating(false);
     }
@@ -58,24 +43,32 @@ Bringing everything together with actionable takeaways and next steps.
     onNext();
   };
 
+  const canRegenerate = feedback.trim().length > 0;
+
   return (
     <StepLayout
       title="Review Your Book Outline"
-      description="Review the generated outline and provide feedback or approve to continue"
+      description="Edit, regenerate, or approve the outline before moving into drafting."
     >
       <div className="space-y-8">
         {/* Outline Display */}
-        <div className="card">
-          <h3 className="text-xl font-semibold mb-4 gradient-text">Generated Outline</h3>
+        <div className="outline-panel">
+          <div className="outline-header">
+            <div>
+              <p className="eyebrow">Outline Draft</p>
+              <h3 className="section-title">Generated Outline</h3>
+            </div>
+            <span className="status-pill">Auto-Saved</span>
+          </div>
           <div className="outline-content">
             {bookData.outline ? (
-              <pre className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
+              <pre className="outline-pre">
                 {bookData.outline}
               </pre>
             ) : (
-              <div className="text-center py-12">
-                <div className="spinner mx-auto mb-4"></div>
-                <p className="text-gray-500">Generating your book outline...</p>
+              <div className="empty-state">
+                <div className="spinner"></div>
+                <p>Generating your book outline...</p>
               </div>
             )}
           </div>
@@ -98,8 +91,13 @@ Bringing everything together with actionable takeaways and next steps.
                 style={{ resize: 'vertical', minHeight: '120px' }}
               />
             </div>
+            {error && (
+              <div className="alert error-alert">
+                {error}
+              </div>
+            )}
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="button-row">
               <button
                 type="button"
                 onClick={onBack}
@@ -111,8 +109,8 @@ Bringing everything together with actionable takeaways and next steps.
               <button
                 type="button"
                 onClick={handleRegenerate}
-                disabled={isRegenerating}
-                className="btn btn-outline"
+                disabled={isRegenerating || !canRegenerate}
+                className="btn btn-ghost"
               >
                 {isRegenerating ? (
                   <>

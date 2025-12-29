@@ -11,14 +11,16 @@ class BookOutlineGenerator(dspy.Signature):
     outline = dspy.OutputField(desc="A detailed book outline with chapters and key points")
 
 class OutlineCreator:
-    def __init__(self):
-        # Configure DSPy with Anthropic
-        anthropic_lm = dspy.LM(
-            model="anthropic/claude-sonnet-4-5-20250929",
-            api_key=os.getenv("ANTHROPIC_API_KEY")
-        )
-        dspy.settings.configure(lm=anthropic_lm)
-        
+    def __init__(self, lm=None):
+        # Configure DSPy once per process to avoid cross-thread reconfiguration.
+        if lm is None:
+            lm = dspy.LM(
+                model="anthropic/claude-haiku-4-5",
+                api_key=os.getenv("ANTHROPIC_API_KEY")
+            )
+        if getattr(dspy.settings, "lm", None) is None:
+            dspy.settings.configure(lm=lm)
+
         # Initialize the predictor
         self.generate_outline = dspy.Predict(BookOutlineGenerator)
     

@@ -11,8 +11,9 @@ class ChapterGenerator(dspy.Signature):
 
 class ChapterCreator:
     def __init__(self, lm):
-        # Use the same language model as the outline generator
-        dspy.settings.configure(lm=lm)
+        # Configure DSPy once per process to avoid cross-thread reconfiguration.
+        if getattr(dspy.settings, "lm", None) is None:
+            dspy.settings.configure(lm=lm)
         self.generate_chapter = dspy.Predict(ChapterGenerator)
     
     def create_chapter(self, book_outline: str, chapter_title: str, chapter_description: str) -> str:
@@ -31,13 +32,18 @@ class ChapterCreator:
         
         for line in lines:
             line = line.strip()
-            if line.startswith('Chapter') or line.startswith('chapter'):
-                # Simple parsing - could be enhanced based on outline format
-                if ':' in line:
-                    title_part = line.split(':')[0].strip()
-                    description_part = line.split(':', 1)[1].strip()
-                    chapters.append((title_part, description_part))
+            if not line:
+                continue
+
+            # Normalize markdown headings or list prefixes.
+            normalized = line.lstrip('#').strip()
+            normalized = normalized.lstrip('-*0123456789. ').strip()
+
+            if normalized.lower().startswith('chapter'):
+                if ':' in normalized:
+                    description_part = normalized.split(':', 1)[1].strip()
+                    chapters.append((normalized, description_part))
                 else:
-                    chapters.append((line, ""))
+                    chapters.append((normalized, ""))
         
         return chapters
