@@ -149,8 +149,8 @@ function App() {
           <div className="brand">
             <span className="brand-mark">✶</span>
             <div>
-              <div className="brand-title">Book Foundry</div>
-              <div className="brand-subtitle">AI Editorial Studio</div>
+              <div className="brand-title">Storystack</div>
+              <div className="brand-subtitle">Build your audiobook</div>
             </div>
           </div>
           <div className="topbar-actions">
