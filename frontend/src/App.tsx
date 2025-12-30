@@ -175,10 +175,6 @@ function App() {
               <p className="eyebrow">Project</p>
               <h1 className="page-title">{bookData.title || 'Untitled Book'}</h1>
             </div>
-            <div className="header-actions">
-              <button type="button" className="btn btn-secondary">Save Draft</button>
-              <button type="button" className="btn btn-primary">Publish</button>
-            </div>
           </div>
 
           <div className="content-body reveal">
