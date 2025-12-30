@@ -678,12 +678,35 @@ body {
   border: 1px solid rgba(15, 23, 42, 0.08);
 }
 
-.outline-pre {
-  white-space: pre-wrap;
+.outline-markdown {
   font-family: 'Space Grotesk', sans-serif;
   font-size: 0.95rem;
   color: #3b4253;
   line-height: 1.6;
+}
+
+.outline-markdown h1,
+.outline-markdown h2,
+.outline-markdown h3 {
+  color: #1f2937;
+  margin: 0.75rem 0 0.35rem;
+}
+
+.outline-markdown p {
+  margin: 0.4rem 0;
+}
+
+.outline-markdown ul,
+.outline-markdown ol {
+  margin: 0.4rem 0 0.6rem 1.2rem;
+}
+
+.outline-markdown li {
+  margin: 0.2rem 0;
+}
+
+.outline-markdown strong {
+  color: #111827;
 }
 
 .empty-state {

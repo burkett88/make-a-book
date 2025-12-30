@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { StepLayout } from '../components/StepLayout';
 import type { BookData } from '../types';
 import { regenerateOutline } from '../api';
@@ -63,9 +64,9 @@ export const OutlineReviewStep = ({ bookData, onUpdate, onNext, onBack }: Outlin
           </div>
           <div className="outline-content">
             {bookData.outline ? (
-              <pre className="outline-pre">
-                {bookData.outline}
-              </pre>
+              <div className="outline-markdown">
+                <ReactMarkdown>{bookData.outline}</ReactMarkdown>
+              </div>
             ) : (
               <div className="empty-state">
                 <div className="spinner"></div>
