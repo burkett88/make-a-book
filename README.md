@@ -50,8 +50,9 @@ Update `app` in `fly.toml` if you need a different Fly app name.
 - `POST /api/outline/feedback` regenerate outline with feedback
 - `POST /api/chapters` generate chapters from outline
 - `POST /api/voice/preview` generate a voice preview MP3
-- `POST /api/audiobook` generate audiobook assets
+- `POST /api/audiobook` generate audiobook assets (blocking)
+- `POST /api/audiobook/start` start audiobook generation job
+- `GET /api/audiobook/status/{job_id}` check audiobook job progress/result
 
 ## Notes
-- Audiobook generation currently produces **only the first chapter** to keep iteration fast.
 - Chapter parsing expects outline lines starting with “Chapter …” (markdown headings and list prefixes are supported).

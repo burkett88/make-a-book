@@ -1,7 +1,9 @@
 import os
 import re
 import tempfile
+import uuid
 from pathlib import Path
+from threading import Lock
 
 import dspy
 from fastapi import BackgroundTasks, FastAPI, HTTPException
@@ -27,6 +29,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+audiobook_jobs: dict[str, dict] = {}
+audiobook_jobs_lock = Lock()
 
 
 class OutlineRequest(BaseModel):
@@ -73,6 +78,20 @@ class AudiobookRequest(BaseModel):
 class AudiobookResponse(BaseModel):
     folder: str
     audio_files: list[str]
+
+
+class AudiobookJobResponse(BaseModel):
+    job_id: str
+    total_chapters: int
+
+
+class AudiobookStatusResponse(BaseModel):
+    status: str
+    progress: int
+    completed_chapters: int
+    total_chapters: int
+    result: AudiobookResponse | None = None
+    error: str | None = None
 
 anthropic_lm = dspy.LM(
     model="anthropic/claude-haiku-4-5",
@@ -144,6 +163,48 @@ def _extract_preview_text(text: str) -> str:
     return preview_text or "This is a preview of the selected voice."
 
 
+def _update_audiobook_job(job_id: str, **updates: object) -> None:
+    with audiobook_jobs_lock:
+        job = audiobook_jobs.get(job_id)
+        if job is None:
+            return
+        job.update(updates)
+
+
+def _run_audiobook_job(job_id: str, payload: AudiobookRequest) -> None:
+    _update_audiobook_job(job_id, status="running")
+
+    def progress_callback(completed: int, total: int) -> None:
+        progress = int(round((completed / total) * 100)) if total else 100
+        _update_audiobook_job(
+            job_id,
+            progress=progress,
+            completed_chapters=completed,
+            total_chapters=total,
+        )
+
+    try:
+        audiobook_gen = AudiobookGenerator()
+        folder, audio_files = audiobook_gen.generate_audiobook(
+            book_title=payload.title,
+            outline=payload.outline,
+            chapters=payload.chapters,
+            voice=payload.voice,
+            speed=payload.speed,
+            include_outline=payload.include_outline,
+            voice_instructions=payload.instructions,
+            progress_callback=progress_callback,
+        )
+        _update_audiobook_job(
+            job_id,
+            status="completed",
+            progress=100,
+            result={"folder": folder, "audio_files": audio_files},
+        )
+    except Exception as exc:
+        _update_audiobook_job(job_id, status="error", error=str(exc))
+
+
 @app.post("/api/voice/preview")
 def voice_preview(payload: VoicePreviewRequest, background_tasks: BackgroundTasks):
     if not payload.text.strip():
@@ -175,6 +236,42 @@ def voice_preview(payload: VoicePreviewRequest, background_tasks: BackgroundTask
         return FileResponse(temp_path, media_type="audio/mpeg", filename="preview.mp3")
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/audiobook/start", response_model=AudiobookJobResponse)
+def start_audiobook_job(payload: AudiobookRequest, background_tasks: BackgroundTasks):
+    if not payload.chapters:
+        raise HTTPException(status_code=400, detail="Chapters are required")
+
+    if not os.getenv("OPENAI_API_KEY"):
+        raise HTTPException(status_code=400, detail="OPENAI_API_KEY is not configured")
+
+    job_id = uuid.uuid4().hex
+    total_chapters = len(payload.chapters)
+
+    with audiobook_jobs_lock:
+        audiobook_jobs[job_id] = {
+            "status": "queued",
+            "progress": 0,
+            "completed_chapters": 0,
+            "total_chapters": total_chapters,
+            "result": None,
+            "error": None,
+        }
+
+    background_tasks.add_task(_run_audiobook_job, job_id, payload)
+    return AudiobookJobResponse(job_id=job_id, total_chapters=total_chapters)
+
+
+@app.get("/api/audiobook/status/{job_id}", response_model=AudiobookStatusResponse)
+def audiobook_job_status(job_id: str):
+    with audiobook_jobs_lock:
+        job = audiobook_jobs.get(job_id)
+
+    if job is None:
+        raise HTTPException(status_code=404, detail="Audiobook job not found")
+
+    return AudiobookStatusResponse(**job)
 
 
 @app.post("/api/audiobook", response_model=AudiobookResponse)

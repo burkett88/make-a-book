@@ -163,8 +163,9 @@ class AudiobookGenerator:
         )
     
     def generate_audiobook(self, book_title: str, outline: str, chapters: List[str],
-                          voice: str = "alloy", speed: float = 1.0, 
-                          include_outline: bool = True, voice_instructions: str = None) -> Tuple[str, List[str]]:
+                          voice: str = "alloy", speed: float = 1.0,
+                          include_outline: bool = True, voice_instructions: str = None,
+                          progress_callback=None) -> Tuple[str, List[str]]:
         """Generate complete audiobook with organized folder structure."""
         
         # Create book folder
@@ -186,12 +187,15 @@ class AudiobookGenerator:
                 Path(outline_audio).rename(outline_path)
                 audio_files.append(str(outline_path))
         
-        # Generate chapter audio (first chapter only for now)
-        if chapters:
+        # Generate chapter audio for every chapter
+        total_chapters = len(chapters)
+        for index, chapter in enumerate(chapters, 1):
             chapter_audio = self.generate_chapter_audio(
-                chapters[0], 1, book_folder, voice, speed, voice_instructions
+                chapter, index, book_folder, voice, speed, voice_instructions
             )
             if chapter_audio:
                 audio_files.append(chapter_audio)
+            if progress_callback:
+                progress_callback(index, total_chapters)
         
         return str(book_folder), audio_files

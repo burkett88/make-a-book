@@ -46,6 +46,20 @@ interface AudiobookResponse {
   audio_files: string[];
 }
 
+interface AudiobookJobResponse {
+  job_id: string;
+  total_chapters: number;
+}
+
+interface AudiobookStatusResponse {
+  status: 'queued' | 'running' | 'completed' | 'error';
+  progress: number;
+  completed_chapters: number;
+  total_chapters: number;
+  result?: AudiobookResponse | null;
+  error?: string | null;
+}
+
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let message = 'Request failed';
@@ -146,4 +160,29 @@ export async function generateAudiobook(payload: AudiobookRequest): Promise<Audi
 
   const data = await handleResponse<AudiobookResponse>(response);
   return data;
+}
+
+export async function startAudiobook(payload: AudiobookRequest): Promise<AudiobookJobResponse> {
+  const response = await fetch(`${API_BASE}/api/audiobook/start`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      title: payload.title,
+      outline: payload.outline,
+      chapters: payload.chapters,
+      voice: payload.voice,
+      speed: payload.speed,
+      include_outline: payload.includeOutline,
+      instructions: payload.instructions,
+    }),
+  });
+
+  return handleResponse<AudiobookJobResponse>(response);
+}
+
+export async function getAudiobookStatus(jobId: string): Promise<AudiobookStatusResponse> {
+  const response = await fetch(`${API_BASE}/api/audiobook/status/${jobId}`);
+  return handleResponse<AudiobookStatusResponse>(response);
 }

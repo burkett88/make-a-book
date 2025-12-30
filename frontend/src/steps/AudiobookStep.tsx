@@ -1,7 +1,7 @@
 import { useMemo, useState, type FC } from 'react';
 import { StepLayout } from '../components/StepLayout';
 import type { BookData } from '../types';
-import { generateAudiobook } from '../api';
+import { getAudiobookStatus, startAudiobook } from '../api';
 
 interface AudiobookStepProps {
   bookData: BookData;
@@ -13,6 +13,9 @@ export const AudiobookStep: FC<AudiobookStepProps> = ({ bookData, onBack }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ folder: string; audioFiles: string[] } | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [completedChapters, setCompletedChapters] = useState(0);
+  const [totalChapters, setTotalChapters] = useState(0);
   const fallbackSettings = useMemo(() => ({
     voice: 'fable',
     speed: 1,
@@ -31,7 +34,12 @@ export const AudiobookStep: FC<AudiobookStepProps> = ({ bookData, onBack }) => {
     setError(null);
 
     try {
-      const response = await generateAudiobook({
+      setResult(null);
+      setProgress(0);
+      setCompletedChapters(0);
+      setTotalChapters(0);
+
+      const job = await startAudiobook({
         title: bookData.title,
         outline: bookData.outline,
         chapters: bookData.chapters,
@@ -40,7 +48,28 @@ export const AudiobookStep: FC<AudiobookStepProps> = ({ bookData, onBack }) => {
         includeOutline,
         instructions: voiceSettings.instructions,
       });
-      setResult({ folder: response.folder, audioFiles: response.audio_files });
+
+      setTotalChapters(job.total_chapters);
+
+      let isComplete = false;
+      while (!isComplete) {
+        const status = await getAudiobookStatus(job.job_id);
+        setProgress(status.progress);
+        setCompletedChapters(status.completed_chapters);
+        setTotalChapters(status.total_chapters);
+
+        if (status.status === 'completed' && status.result) {
+          setResult({ folder: status.result.folder, audioFiles: status.result.audio_files });
+          isComplete = true;
+          break;
+        }
+
+        if (status.status === 'error') {
+          throw new Error(status.error ?? 'Failed to generate audiobook');
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to generate audiobook';
       setError(message);
@@ -87,6 +116,21 @@ export const AudiobookStep: FC<AudiobookStepProps> = ({ bookData, onBack }) => {
               {isGenerating ? 'Generating Audiobook...' : 'Generate Audiobook'}
             </button>
           </div>
+
+          {isGenerating && (
+            <div className="progress-block">
+              <div className="progress-meta">
+                <span className="progress-label">Generating chapters</span>
+                <span className="progress-percent">{progress}%</span>
+              </div>
+              <div className="progress-track">
+                <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+              </div>
+              <p className="progress-footnote">
+                {completedChapters} of {totalChapters} chapters rendered
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="voice-panel">
