@@ -1,6 +1,7 @@
 export interface BookData {
   title: string;
   prompt: string;
+  targetDurationMinutes: number;
   outline?: string;
   chapters?: string[];
   voiceSettings?: {

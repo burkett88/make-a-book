@@ -1,6 +1,7 @@
 import os
 import re
 import tempfile
+import time
 import uuid
 from pathlib import Path
 from threading import Lock
@@ -17,6 +18,7 @@ from dotenv import load_dotenv
 from src.make_a_book.audiobook_generator import AudiobookGenerator
 from src.make_a_book.chapter_generator import ChapterCreator
 from src.make_a_book.outline_generator import OutlineCreator
+from src.make_a_book.tts_time_estimator import count_words, estimate_tts_seconds
 
 load_dotenv()
 
@@ -37,12 +39,14 @@ audiobook_jobs_lock = Lock()
 class OutlineRequest(BaseModel):
     title: str
     prompt: str
+    target_duration_minutes: int = 5
 
 
 class OutlineFeedbackRequest(BaseModel):
     title: str
     prompt: str
     feedback: str
+    target_duration_minutes: int = 5
 
 
 class OutlineResponse(BaseModel):
@@ -52,6 +56,7 @@ class OutlineResponse(BaseModel):
 class ChapterRequest(BaseModel):
     title: str
     outline: str
+    target_duration_minutes: int = 5
 
 
 class ChapterResponse(BaseModel):
@@ -90,6 +95,8 @@ class AudiobookStatusResponse(BaseModel):
     progress: int
     completed_chapters: int
     total_chapters: int
+    elapsed_seconds: int | None = None
+    estimated_seconds: int | None = None
     result: AudiobookResponse | None = None
     error: str | None = None
 
@@ -112,7 +119,10 @@ def generate_outline(payload: OutlineRequest):
         raise HTTPException(status_code=400, detail="Prompt is required")
 
     try:
-        outline = outline_creator.create_outline(payload.prompt)
+        outline = outline_creator.create_outline(
+            payload.prompt,
+            payload.target_duration_minutes,
+        )
         return OutlineResponse(outline=outline)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
@@ -128,7 +138,10 @@ def regenerate_outline(payload: OutlineFeedbackRequest):
 
     try:
         updated_prompt = f"{payload.prompt}\n\nUser feedback: {payload.feedback}"
-        outline = outline_creator.create_outline(updated_prompt)
+        outline = outline_creator.create_outline(
+            updated_prompt,
+            payload.target_duration_minutes,
+        )
         return OutlineResponse(outline=outline)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
@@ -140,7 +153,10 @@ def generate_chapters(payload: ChapterRequest):
         raise HTTPException(status_code=400, detail="Outline is required")
 
     try:
-        chapters = chapter_creator.create_chapters(payload.outline)
+        chapters = chapter_creator.create_chapters(
+            payload.outline,
+            payload.target_duration_minutes,
+        )
         if not chapters:
             raise HTTPException(status_code=500, detail="No chapters were generated")
 
@@ -172,10 +188,21 @@ def _update_audiobook_job(job_id: str, **updates: object) -> None:
 
 
 def _run_audiobook_job(job_id: str, payload: AudiobookRequest) -> None:
-    _update_audiobook_job(job_id, status="running")
+    _update_audiobook_job(job_id, status="running", started_at=time.time())
 
-    def progress_callback(completed: int, total: int) -> None:
-        progress = int(round((completed / total) * 100)) if total else 100
+    def progress_callback(**kwargs: object) -> None:
+        completed = 0
+        total = 0
+        stage = kwargs.get("stage")
+        if stage == "chapter":
+            completed = int(kwargs.get("chapter_index", 0))
+            total = int(kwargs.get("total_chapters", 0))
+        elif stage == "chunk":
+            chapter_index = int(kwargs.get("chapter_index", 0))
+            completed = max(0, chapter_index - 1)
+            with audiobook_jobs_lock:
+                total = int(audiobook_jobs.get(job_id, {}).get("total_chapters", 0))
+        progress = int(round((completed / total) * 100)) if total else 0
         _update_audiobook_job(
             job_id,
             progress=progress,
@@ -199,6 +226,7 @@ def _run_audiobook_job(job_id: str, payload: AudiobookRequest) -> None:
             job_id,
             status="completed",
             progress=100,
+            completed_at=time.time(),
             result={"folder": folder, "audio_files": audio_files},
         )
     except Exception as exc:
@@ -248,6 +276,11 @@ def start_audiobook_job(payload: AudiobookRequest, background_tasks: BackgroundT
 
     job_id = uuid.uuid4().hex
     total_chapters = len(payload.chapters)
+    text_for_estimate = " ".join(payload.chapters)
+    if payload.include_outline:
+        text_for_estimate = f"{payload.outline} {text_for_estimate}"
+    word_count = count_words(text_for_estimate)
+    estimated_seconds = estimate_tts_seconds(word_count, payload.speed)
 
     with audiobook_jobs_lock:
         audiobook_jobs[job_id] = {
@@ -255,6 +288,9 @@ def start_audiobook_job(payload: AudiobookRequest, background_tasks: BackgroundT
             "progress": 0,
             "completed_chapters": 0,
             "total_chapters": total_chapters,
+            "estimated_seconds": estimated_seconds,
+            "started_at": None,
+            "completed_at": None,
             "result": None,
             "error": None,
         }
@@ -271,7 +307,23 @@ def audiobook_job_status(job_id: str):
     if job is None:
         raise HTTPException(status_code=404, detail="Audiobook job not found")
 
-    return AudiobookStatusResponse(**job)
+    elapsed_seconds = None
+    estimated_seconds = job.get("estimated_seconds")
+    if job.get("started_at"):
+        end_time = job.get("completed_at") or time.time()
+        elapsed_seconds = int(max(0, end_time - job["started_at"]))
+
+    progress = job.get("progress", 0)
+    if job.get("status") == "running" and estimated_seconds:
+        progress = min(99, int(round((elapsed_seconds or 0) / estimated_seconds * 100)))
+    if job.get("status") == "completed":
+        progress = 100
+
+    response = dict(job)
+    response["progress"] = progress
+    response["elapsed_seconds"] = elapsed_seconds
+    response["estimated_seconds"] = estimated_seconds
+    return AudiobookStatusResponse(**response)
 
 
 @app.post("/api/audiobook", response_model=AudiobookResponse)

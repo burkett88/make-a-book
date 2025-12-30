@@ -32,6 +32,7 @@ export const ChapterGenerationStep: FC<ChapterGenerationStepProps> = ({
       const chapters = await generateChapters({
         title: bookData.title,
         outline: bookData.outline,
+        targetDurationMinutes: bookData.targetDurationMinutes,
       });
       onUpdate({ chapters });
     } catch (error) {

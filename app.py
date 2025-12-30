@@ -1,8 +1,14 @@
 import streamlit as st
 import os
+import time
 from src.make_a_book.outline_generator import OutlineCreator
 from src.make_a_book.chapter_generator import ChapterCreator
 from src.make_a_book.audiobook_generator import AudiobookGenerator
+from src.make_a_book.tts_time_estimator import (
+    count_words,
+    estimate_tts_seconds,
+    format_duration,
+)
 
 # Page config
 st.set_page_config(
@@ -22,6 +28,8 @@ if 'book_saved' not in st.session_state:
     st.session_state.book_saved = False
 if 'saved_filename' not in st.session_state:
     st.session_state.saved_filename = ""
+if 'target_duration_minutes' not in st.session_state:
+    st.session_state.target_duration_minutes = 5
 
 def save_book_content(title, outline, chapters=None):
     """Save the book content to a file and return the content."""
@@ -88,6 +96,14 @@ def main():
             placeholder="Describe what your book should be about...",
             height=100
         )
+
+        target_duration_minutes = st.number_input(
+            "Target Book Duration (minutes)",
+            min_value=1,
+            max_value=120,
+            value=st.session_state.target_duration_minutes,
+            step=1
+        )
         
         generate_outline = st.form_submit_button("Generate Outline", type="primary")
     
@@ -97,10 +113,14 @@ def main():
             st.error("Please enter a book title")
         else:
             st.session_state.book_title = book_title
+            st.session_state.target_duration_minutes = int(target_duration_minutes)
             
             with st.spinner("Generating outline..."):
                 outline_generator = OutlineCreator()
-                outline = outline_generator.create_outline(prompt)
+                outline = outline_generator.create_outline(
+                    prompt,
+                    st.session_state.target_duration_minutes
+                )
                 st.session_state.outline = outline
                 st.session_state.chapters = None  # Reset chapters
                 st.rerun()
@@ -144,7 +164,10 @@ def main():
                     updated_prompt = f"{prompt}\n\nUser feedback: {feedback}"
                     with st.spinner("Updating outline..."):
                         outline_generator = OutlineCreator()
-                        outline = outline_generator.create_outline(updated_prompt)
+                        outline = outline_generator.create_outline(
+                            updated_prompt,
+                            st.session_state.target_duration_minutes
+                        )
                         st.session_state.outline = outline
                         st.rerun()
     
@@ -172,7 +195,10 @@ def main():
                         progress_bar = st.progress(0)
                         status_text = st.empty()
                         status_text.text("Generating chapters...")
-                        chapters = chapter_generator.create_chapters(st.session_state.outline)
+                        chapters = chapter_generator.create_chapters(
+                            st.session_state.outline,
+                            st.session_state.target_duration_minutes
+                        )
                         progress_bar.progress(1.0)
                         
                         if not chapters:
@@ -308,6 +334,15 @@ def main():
         
         # Audio generation section
         st.subheader("Generate Audio")
+
+        total_words = 0
+        if include_outline:
+            total_words += count_words(st.session_state.outline or "")
+        total_words += sum(count_words(chapter) for chapter in st.session_state.chapters)
+        estimated_seconds = estimate_tts_seconds(total_words, speed)
+        estimated_duration = format_duration(estimated_seconds)
+        if total_words:
+            st.info(f"Estimated time to generate: ~{estimated_duration} ({total_words} words).")
         
         if st.button("🎧 Create Audiobook", type="primary"):
             # Check if OpenAI API key is available
@@ -327,8 +362,24 @@ def main():
                         if include_outline:
                             total_items += 1
                         
-                        status_text.text("Creating book folder and saving text files...")
-                        progress_bar.progress(10)
+                        start_time = time.monotonic()
+
+                        status_text.text(f"Creating book folder and saving text files... (~{estimated_duration})")
+                        progress_bar.progress(0.05)
+
+                        def progress_callback(**_kwargs):
+                            elapsed = time.monotonic() - start_time
+                            if estimated_seconds > 0:
+                                pct = min(0.99, elapsed / estimated_seconds)
+                                progress_bar.progress(pct)
+                                status_text.text(
+                                    f"Generating audio... ~{format_duration(int(elapsed))} elapsed "
+                                    f"of ~{estimated_duration} ({int(pct * 100)}%)"
+                                )
+                            else:
+                                progress = min(0.99, chapter_index / max(total_chapters, 1))
+                                progress_bar.progress(progress)
+                                status_text.text(f"Generating audio... ({int(progress * 100)}%)")
                         
                         book_folder, audio_files = audiobook_gen.generate_audiobook(
                             book_title=st.session_state.book_title,
@@ -337,10 +388,11 @@ def main():
                             voice=voice_option,
                             speed=speed,
                             include_outline=include_outline,
-                            voice_instructions=voice_instructions
+                            voice_instructions=voice_instructions,
+                            progress_callback=progress_callback
                         )
                         
-                        progress_bar.progress(100)
+                        progress_bar.progress(1.0)
                         status_text.text("✅ Audiobook generation complete!")
                         
                         st.success(f"""

@@ -22,6 +22,7 @@ function App() {
   const [bookData, setBookData] = useState<BookData>({
     title: '',
     prompt: '',
+    targetDurationMinutes: 5,
   });
 
   const updateBookData = (newData: Partial<BookData>) => {

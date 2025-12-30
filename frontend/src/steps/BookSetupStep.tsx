@@ -27,6 +27,7 @@ export const BookSetupStep: FC<BookSetupStepProps> = ({
       const outline = await generateOutline({
         title: bookData.title,
         prompt: bookData.prompt,
+        targetDurationMinutes: bookData.targetDurationMinutes,
       });
       onUpdate({ outline });
       onNext();
@@ -74,6 +75,21 @@ export const BookSetupStep: FC<BookSetupStepProps> = ({
             rows={5}
             className="form-input"
             style={{resize: 'none'}}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="duration" className="form-label">
+            Target Book Duration (minutes)
+          </label>
+          <input
+            type="number"
+            id="duration"
+            min={1}
+            max={120}
+            value={bookData.targetDurationMinutes}
+            onChange={(e) => onUpdate({ targetDurationMinutes: Number(e.target.value) || 1 })}
+            className="form-input"
           />
         </div>
 

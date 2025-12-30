@@ -63,9 +63,10 @@ class AudiobookGenerator:
         
         return book_folder
     
-    def generate_chapter_audio(self, chapter_text: str, chapter_num: int, 
-                             book_folder: Path, voice: str = "alloy", 
-                             speed: float = 1.0, voice_instructions: str = None) -> str:
+    def generate_chapter_audio(self, chapter_text: str, chapter_num: int,
+                             book_folder: Path, voice: str = "alloy",
+                             speed: float = 1.0, voice_instructions: str = None,
+                             progress_callback=None) -> str:
         """Generate audio for a single chapter."""
         chunks = self.chunk_text(chapter_text)
         audio_files = []
@@ -94,6 +95,14 @@ class AudiobookGenerator:
                 
                 response.stream_to_file(chunk_filename)
                 audio_files.append(chunk_filename)
+
+                if progress_callback:
+                    progress_callback(
+                        stage="chunk",
+                        chapter_index=chapter_num,
+                        chunk_index=i + 1,
+                        total_chunks=len(chunks),
+                    )
                 
                 # Small delay to avoid rate limiting
                 time.sleep(0.1)
@@ -179,7 +188,8 @@ class AudiobookGenerator:
         # Generate outline audio if requested
         if include_outline:
             outline_audio = self.generate_chapter_audio(
-                f"Book Outline. {outline}", 0, book_folder, voice, speed, voice_instructions
+                f"Book Outline. {outline}", 0, book_folder, voice, speed,
+                voice_instructions, progress_callback
             )
             if outline_audio:
                 # Rename to outline
@@ -191,11 +201,16 @@ class AudiobookGenerator:
         total_chapters = len(chapters)
         for index, chapter in enumerate(chapters, 1):
             chapter_audio = self.generate_chapter_audio(
-                chapter, index, book_folder, voice, speed, voice_instructions
+                chapter, index, book_folder, voice, speed, voice_instructions,
+                progress_callback
             )
             if chapter_audio:
                 audio_files.append(chapter_audio)
             if progress_callback:
-                progress_callback(index, total_chapters)
+                progress_callback(
+                    stage="chapter",
+                    chapter_index=index,
+                    total_chapters=total_chapters,
+                )
         
         return str(book_folder), audio_files

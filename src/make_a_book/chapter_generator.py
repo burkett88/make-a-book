@@ -6,6 +6,9 @@ class ChapterGenerator(dspy.Signature):
     book_outline: str = dspy.InputField(
         desc="The complete book outline with chapter headings and descriptions"
     )
+    target_duration_minutes: int = dspy.InputField(
+        desc="Target total duration in minutes for the entire book"
+    )
     chapters: list[str] = dspy.OutputField(
         desc="An array of chapter contents in outline order; one string per chapter"
     )
@@ -17,9 +20,12 @@ class ChapterCreator:
             dspy.settings.configure(lm=lm)
         self.generate_chapters = dspy.Predict(ChapterGenerator)
     
-    def create_chapters(self, book_outline: str) -> list[str]:
+    def create_chapters(self, book_outline: str, target_duration_minutes: int) -> list[str]:
         """Generate all chapters for the outline in a single call."""
-        result = self.generate_chapters(book_outline=book_outline)
+        result = self.generate_chapters(
+            book_outline=book_outline,
+            target_duration_minutes=target_duration_minutes
+        )
         chapters = result.chapters
         if chapters is None:
             return []

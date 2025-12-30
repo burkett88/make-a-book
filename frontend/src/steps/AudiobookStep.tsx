@@ -15,11 +15,20 @@ export const AudiobookStep: FC<AudiobookStepProps> = ({ bookData, onBack }) => {
   const [progress, setProgress] = useState(0);
   const [completedChapters, setCompletedChapters] = useState(0);
   const [totalChapters, setTotalChapters] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState<number | null>(null);
+  const [estimatedSeconds, setEstimatedSeconds] = useState<number | null>(null);
   const fallbackSettings = useMemo(() => ({
     voice: 'fable',
     speed: 1,
     instructions: 'Read with excitement and clarity. Use varied intonation, subtle pauses, and a confident storyteller tone.',
   }), []);
+
+  const formatDuration = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes}m ${secs}s`;
+  };
 
   const handleGenerate = async () => {
     if (!bookData.chapters?.length || !bookData.outline) {
@@ -37,6 +46,8 @@ export const AudiobookStep: FC<AudiobookStepProps> = ({ bookData, onBack }) => {
       setProgress(0);
       setCompletedChapters(0);
       setTotalChapters(0);
+      setElapsedSeconds(null);
+      setEstimatedSeconds(null);
 
       const job = await startAudiobook({
         title: bookData.title,
@@ -53,9 +64,14 @@ export const AudiobookStep: FC<AudiobookStepProps> = ({ bookData, onBack }) => {
       let isComplete = false;
       while (!isComplete) {
         const status = await getAudiobookStatus(job.job_id);
-        setProgress(status.progress);
+        const derivedProgress = (status.elapsed_seconds != null && status.estimated_seconds)
+          ? Math.min(99, Math.round((status.elapsed_seconds / status.estimated_seconds) * 100))
+          : status.progress;
+        setProgress(derivedProgress);
         setCompletedChapters(status.completed_chapters);
         setTotalChapters(status.total_chapters);
+        setElapsedSeconds(status.elapsed_seconds ?? null);
+        setEstimatedSeconds(status.estimated_seconds ?? null);
 
         if (status.status === 'completed' && status.result) {
           setResult({ folder: status.result.folder, audioFiles: status.result.audio_files });
@@ -110,15 +126,22 @@ export const AudiobookStep: FC<AudiobookStepProps> = ({ bookData, onBack }) => {
           {isGenerating && (
             <div className="progress-block">
               <div className="progress-meta">
-                <span className="progress-label">Generating chapters</span>
+                <span className="progress-label">Generating audio</span>
                 <span className="progress-percent">{progress}%</span>
               </div>
               <div className="progress-track">
                 <div className="progress-fill" style={{ width: `${progress}%` }}></div>
               </div>
               <p className="progress-footnote">
-                {completedChapters} of {totalChapters} chapters rendered
+                {elapsedSeconds !== null && estimatedSeconds !== null
+                  ? `${formatDuration(Math.max(0, elapsedSeconds))} elapsed of ~${formatDuration(Math.max(1, estimatedSeconds))}`
+                  : `${completedChapters} of ${totalChapters} chapters rendered`}
               </p>
+              {completedChapters || totalChapters ? (
+                <p className="progress-footnote">
+                  {completedChapters} of {totalChapters} chapters rendered
+                </p>
+              ) : null}
             </div>
           )}
         </div>

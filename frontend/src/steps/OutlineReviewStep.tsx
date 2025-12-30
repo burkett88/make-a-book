@@ -28,6 +28,7 @@ export const OutlineReviewStep = ({ bookData, onUpdate, onNext, onBack }: Outlin
         title: bookData.title,
         prompt: bookData.prompt,
         feedback,
+        targetDurationMinutes: bookData.targetDurationMinutes,
       });
       onUpdate({ outline: updatedOutline });
       setFeedback('');

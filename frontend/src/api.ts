@@ -3,17 +3,20 @@ const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 export interface OutlineRequest {
   title: string;
   prompt: string;
+  targetDurationMinutes: number;
 }
 
 export interface OutlineFeedbackRequest {
   title: string;
   prompt: string;
   feedback: string;
+  targetDurationMinutes: number;
 }
 
 export interface ChaptersRequest {
   title: string;
   outline: string;
+  targetDurationMinutes: number;
 }
 
 export interface VoicePreviewRequest {
@@ -56,6 +59,8 @@ interface AudiobookStatusResponse {
   progress: number;
   completed_chapters: number;
   total_chapters: number;
+  elapsed_seconds?: number | null;
+  estimated_seconds?: number | null;
   result?: AudiobookResponse | null;
   error?: string | null;
 }
@@ -83,7 +88,11 @@ export async function generateOutline(payload: OutlineRequest): Promise<string> 
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      title: payload.title,
+      prompt: payload.prompt,
+      target_duration_minutes: payload.targetDurationMinutes,
+    }),
   });
 
   const data = await handleResponse<OutlineResponse>(response);
@@ -96,7 +105,12 @@ export async function regenerateOutline(payload: OutlineFeedbackRequest): Promis
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      title: payload.title,
+      prompt: payload.prompt,
+      feedback: payload.feedback,
+      target_duration_minutes: payload.targetDurationMinutes,
+    }),
   });
 
   const data = await handleResponse<OutlineResponse>(response);
@@ -109,7 +123,11 @@ export async function generateChapters(payload: ChaptersRequest): Promise<string
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      title: payload.title,
+      outline: payload.outline,
+      target_duration_minutes: payload.targetDurationMinutes,
+    }),
   });
 
   const data = await handleResponse<ChaptersResponse>(response);

@@ -8,6 +8,9 @@ class BookOutlineGenerator(dspy.Signature):
     """Generate a comprehensive book outline from a given prompt or topic."""
     
     prompt = dspy.InputField(desc="The book topic, theme, or initial prompt")
+    target_duration_minutes: int = dspy.InputField(
+        desc="Target total duration in minutes for the entire book"
+    )
     outline = dspy.OutputField(desc="A detailed book outline with chapters and key points")
 
 class OutlineCreator:
@@ -24,7 +27,10 @@ class OutlineCreator:
         # Initialize the predictor
         self.generate_outline = dspy.Predict(BookOutlineGenerator)
     
-    def create_outline(self, prompt: str) -> str:
+    def create_outline(self, prompt: str, target_duration_minutes: int) -> str:
         """Generate a book outline from the given prompt."""
-        result = self.generate_outline(prompt=prompt)
+        result = self.generate_outline(
+            prompt=prompt,
+            target_duration_minutes=target_duration_minutes
+        )
         return result.outline
