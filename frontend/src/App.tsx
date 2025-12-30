@@ -103,7 +103,7 @@ function App() {
             <div className="modal-header">
               <div>
                 <p className="eyebrow">Workflow</p>
-                <h2 className="modal-title">Turn a prompt into a publish-ready book.</h2>
+                <h2 className="modal-title">Build your audiobook, step by step</h2>
               </div>
               <button
                 type="button"
@@ -115,7 +115,7 @@ function App() {
               </button>
             </div>
             <p className="modal-copy">
-              Outline, draft, and voice your story with a production-grade workflow that keeps you in control.
+              Approve the plan, refine the draft, and select the narration voice that fits your story.
             </p>
             <div className="metric-grid">
               <div className="metric">
