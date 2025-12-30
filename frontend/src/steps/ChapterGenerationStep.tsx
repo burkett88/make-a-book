@@ -73,7 +73,7 @@ export const ChapterGenerationStep: FC<ChapterGenerationStepProps> = ({
             </button>
             <button
               type="button"
-              className="btn btn-primary"
+              className="btn btn-secondary"
               onClick={handleGenerateChapters}
               disabled={isGenerating}
             >
@@ -86,14 +86,15 @@ export const ChapterGenerationStep: FC<ChapterGenerationStepProps> = ({
                 'Generate Chapters'
               )}
             </button>
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={handleContinue}
-              disabled={!bookData.chapters?.length}
-            >
-              Continue to Voice Setup
-            </button>
+            {bookData.chapters?.length ? (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleContinue}
+              >
+                Set Up Voice
+              </button>
+            ) : null}
           </div>
         </div>
 

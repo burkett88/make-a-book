@@ -138,15 +138,15 @@ export const VoiceSetupStep: FC<VoiceSetupStepProps> = ({
               ← Back
             </button>
             <button
-              className="btn btn-primary"
+              className="btn btn-secondary"
               type="button"
               onClick={handlePreview}
               disabled={isPreviewing}
             >
               {isPreviewing ? 'Rendering Preview...' : 'Preview Voice'}
             </button>
-            <button className="btn btn-ghost" type="button" onClick={onNext}>
-              Continue to Audiobook
+            <button className="btn btn-primary" type="button" onClick={onNext}>
+              Generate Audiobook
             </button>
           </div>
         </div>
