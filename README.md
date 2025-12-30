@@ -33,6 +33,17 @@ ANTHROPIC_API_KEY=...
 OPENAI_API_KEY=...
 ```
 
+## Fly.io Deployment (scale to zero)
+This repo includes a Dockerfile and `fly.toml` configured for Fly Machines auto start/stop.
+
+```sh
+fly launch --no-deploy
+fly secrets set ANTHROPIC_API_KEY=... OPENAI_API_KEY=...
+fly deploy
+```
+
+Update `app` in `fly.toml` if you need a different Fly app name.
+
 ## API Endpoints
 - `GET /api/health` health check
 - `POST /api/outline` generate outline

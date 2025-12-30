@@ -1,11 +1,13 @@
 import os
 import re
 import tempfile
+from pathlib import Path
 
 import dspy
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from openai import OpenAI
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -209,3 +211,8 @@ def generate_audiobook(payload: AudiobookRequest):
         return AudiobookResponse(folder=folder, audio_files=audio_files)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+frontend_dist = Path(__file__).resolve().parent / "frontend" / "dist"
+if frontend_dist.is_dir():
+    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
