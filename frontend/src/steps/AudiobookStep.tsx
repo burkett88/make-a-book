@@ -9,7 +9,6 @@ interface AudiobookStepProps {
 }
 
 export const AudiobookStep: FC<AudiobookStepProps> = ({ bookData, onBack }) => {
-  const [includeOutline, setIncludeOutline] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ folder: string; audioFiles: string[] } | null>(null);
@@ -45,7 +44,7 @@ export const AudiobookStep: FC<AudiobookStepProps> = ({ bookData, onBack }) => {
         chapters: bookData.chapters,
         voice: voiceSettings.voice,
         speed: voiceSettings.speed,
-        includeOutline,
+        includeOutline: false,
         instructions: voiceSettings.instructions,
       });
 
@@ -86,16 +85,7 @@ export const AudiobookStep: FC<AudiobookStepProps> = ({ bookData, onBack }) => {
       <div className="voice-grid">
         <div className="voice-panel">
           <h3 className="section-title">Generation Options</h3>
-          <p className="muted-text">Choose which assets to include before you render audio.</p>
-
-          <label className="toggle-row">
-            <input
-              type="checkbox"
-              checked={includeOutline}
-              onChange={(event) => setIncludeOutline(event.target.checked)}
-            />
-            Include outline narration
-          </label>
+          <p className="muted-text">Your audiobook will include chapter narration only.</p>
 
           {error && (
             <div className="alert error-alert">
