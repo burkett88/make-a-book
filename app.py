@@ -168,28 +168,16 @@ def main():
                         )
                         chapter_generator = ChapterCreator(anthropic_lm)
                         
-                        # Parse chapters from outline
-                        chapters_info = chapter_generator.parse_outline_chapters(st.session_state.outline)
-                        
-                        if not chapters_info:
-                            chapters_info = [
-                                ("Chapter 1: Introduction", "Introduction to the topic"),
-                                ("Chapter 2: Main Content", "Core content and concepts"),
-                                ("Chapter 3: Conclusion", "Summary and final thoughts")
-                            ]
-                        
                         # Generate chapters with progress
-                        chapters = []
                         progress_bar = st.progress(0)
                         status_text = st.empty()
+                        status_text.text("Generating chapters...")
+                        chapters = chapter_generator.create_chapters(st.session_state.outline)
+                        progress_bar.progress(1.0)
                         
-                        for i, (title, description) in enumerate(chapters_info):
-                            status_text.text(f"Generating {title}...")
-                            chapter_content = chapter_generator.create_chapter(
-                                st.session_state.outline, title, description
-                            )
-                            chapters.append(chapter_content)
-                            progress_bar.progress((i + 1) / len(chapters_info))
+                        if not chapters:
+                            st.error("No chapters were generated. Please try again.")
+                            st.stop()
                         
                         st.session_state.chapters = chapters
                         

@@ -1,49 +1,32 @@
 import dspy
-from typing import List
 
 class ChapterGenerator(dspy.Signature):
-    """Generate a detailed chapter for a book based on the outline and chapter topic."""
+    """Generate detailed chapters for a book based on the outline."""
     
-    book_outline = dspy.InputField(desc="The complete book outline")
-    chapter_title = dspy.InputField(desc="The title of the chapter to generate")
-    chapter_description = dspy.InputField(desc="Brief description of what this chapter should cover")
-    chapter = dspy.OutputField(desc="A complete, well-written chapter with detailed content")
+    book_outline: str = dspy.InputField(
+        desc="The complete book outline with chapter headings and descriptions"
+    )
+    chapters: list[str] = dspy.OutputField(
+        desc="An array of chapter contents in outline order; one string per chapter"
+    )
 
 class ChapterCreator:
     def __init__(self, lm):
         # Configure DSPy once per process to avoid cross-thread reconfiguration.
         if getattr(dspy.settings, "lm", None) is None:
             dspy.settings.configure(lm=lm)
-        self.generate_chapter = dspy.Predict(ChapterGenerator)
+        self.generate_chapters = dspy.Predict(ChapterGenerator)
     
-    def create_chapter(self, book_outline: str, chapter_title: str, chapter_description: str) -> str:
-        """Generate a detailed chapter based on the outline and chapter information."""
-        result = self.generate_chapter(
-            book_outline=book_outline,
-            chapter_title=chapter_title,
-            chapter_description=chapter_description
-        )
-        return result.chapter
-    
-    def parse_outline_chapters(self, outline: str) -> List[tuple]:
-        """Extract chapter titles and descriptions from the outline."""
-        lines = outline.split('\n')
-        chapters = []
-        
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue
-
-            # Normalize markdown headings or list prefixes.
-            normalized = line.lstrip('#').strip()
-            normalized = normalized.lstrip('-*0123456789. ').strip()
-
-            if normalized.lower().startswith('chapter'):
-                if ':' in normalized:
-                    description_part = normalized.split(':', 1)[1].strip()
-                    chapters.append((normalized, description_part))
-                else:
-                    chapters.append((normalized, ""))
-        
-        return chapters
+    def create_chapters(self, book_outline: str) -> list[str]:
+        """Generate all chapters for the outline in a single call."""
+        result = self.generate_chapters(book_outline=book_outline)
+        chapters = result.chapters
+        if chapters is None:
+            return []
+        if isinstance(chapters, list):
+            return chapters
+        if isinstance(chapters, tuple):
+            return list(chapters)
+        if isinstance(chapters, str):
+            return [chapters]
+        return [str(chapters)]

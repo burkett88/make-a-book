@@ -79,23 +79,10 @@ def main():
             # Create chapter generator using the same LM
             chapter_generator = ChapterCreator(outline_generator.generate_outline.lm)
             
-            # Parse chapters from outline
-            chapters_info = chapter_generator.parse_outline_chapters(outline)
-            
-            if not chapters_info:
-                print("Could not parse chapters from outline. Generating generic chapters...")
-                chapters_info = [
-                    ("Chapter 1: Introduction", "Introduction to the topic"),
-                    ("Chapter 2: Main Content", "Core content and concepts"),
-                    ("Chapter 3: Conclusion", "Summary and final thoughts")
-                ]
-            
-            chapters = []
-            for i, (title, description) in enumerate(chapters_info, 1):
-                print(f"\nGenerating {title}...")
-                chapter_content = chapter_generator.create_chapter(outline, title, description)
-                chapters.append(chapter_content)
-                print(f"✓ {title} completed")
+            chapters = chapter_generator.create_chapters(outline)
+            if not chapters:
+                print("No chapters were returned. Please try regenerating the outline.")
+                continue
             
             # Save the complete book
             filename = save_book_content(book_title, outline, chapters)

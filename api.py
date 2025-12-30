@@ -121,21 +121,9 @@ def generate_chapters(payload: ChapterRequest):
         raise HTTPException(status_code=400, detail="Outline is required")
 
     try:
-        chapters_info = chapter_creator.parse_outline_chapters(payload.outline)
-
-        if not chapters_info:
-            chapters_info = [
-                ("Chapter 1: Introduction", "Introduction to the topic"),
-                ("Chapter 2: Main Content", "Core content and concepts"),
-                ("Chapter 3: Conclusion", "Summary and final thoughts"),
-            ]
-
-        chapters: list[str] = []
-        for title, description in chapters_info:
-            chapter_content = chapter_creator.create_chapter(
-                payload.outline, title, description
-            )
-            chapters.append(chapter_content)
+        chapters = chapter_creator.create_chapters(payload.outline)
+        if not chapters:
+            raise HTTPException(status_code=500, detail="No chapters were generated")
 
         return ChapterResponse(chapters=chapters)
     except Exception as exc:
