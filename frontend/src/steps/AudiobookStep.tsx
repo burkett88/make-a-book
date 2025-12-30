@@ -1,7 +1,7 @@
 import { useMemo, useState, type FC } from 'react';
 import { StepLayout } from '../components/StepLayout';
 import type { BookData } from '../types';
-import { getAudiobookStatus, startAudiobook } from '../api';
+import { API_BASE, getAudiobookStatus, startAudiobook } from '../api';
 
 interface AudiobookStepProps {
   bookData: BookData;
@@ -11,7 +11,7 @@ interface AudiobookStepProps {
 export const AudiobookStep: FC<AudiobookStepProps> = ({ bookData, onBack }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ folder: string; audioFiles: string[] } | null>(null);
+  const [result, setResult] = useState<{ folder: string; audioFiles: string[]; downloadUrl?: string | null } | null>(null);
   const [progress, setProgress] = useState(0);
   const [completedChapters, setCompletedChapters] = useState(0);
   const [totalChapters, setTotalChapters] = useState(0);
@@ -74,7 +74,11 @@ export const AudiobookStep: FC<AudiobookStepProps> = ({ bookData, onBack }) => {
         setEstimatedSeconds(status.estimated_seconds ?? null);
 
         if (status.status === 'completed' && status.result) {
-          setResult({ folder: status.result.folder, audioFiles: status.result.audio_files });
+          setResult({
+            folder: status.result.folder,
+            audioFiles: status.result.audio_files,
+            downloadUrl: status.result.download_url ?? null,
+          });
           isComplete = true;
           break;
         }
@@ -154,6 +158,18 @@ export const AudiobookStep: FC<AudiobookStepProps> = ({ bookData, onBack }) => {
             <div className="result-panel">
               <p><strong>Folder:</strong> {result.folder}</p>
               <p><strong>Audio files:</strong> {result.audioFiles.length}</p>
+              {result.downloadUrl ? (
+                <p>
+                  <a
+                    className="btn btn-secondary"
+                    href={`${API_BASE}${result.downloadUrl}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Download audiobook zip
+                  </a>
+                </p>
+              ) : null}
               <div className="chapter-list">
                 {result.audioFiles.map((file) => (
                   <div key={file} className="chapter-card">

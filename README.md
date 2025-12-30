@@ -33,6 +33,12 @@ ANTHROPIC_API_KEY=...
 OPENAI_API_KEY=...
 ```
 
+Optional for downloads:
+```
+BOOK_OUTPUT_DIR=/tmp/book_foundry_outputs
+```
+Generated audiobook zips are served from `/downloads/*`.
+
 ## Fly.io Deployment (scale to zero)
 This repo includes a Dockerfile and `fly.toml` configured for Fly Machines auto start/stop.
 

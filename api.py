@@ -3,6 +3,7 @@ import re
 import tempfile
 import time
 import uuid
+import shutil
 from pathlib import Path
 from threading import Lock
 
@@ -83,6 +84,7 @@ class AudiobookRequest(BaseModel):
 class AudiobookResponse(BaseModel):
     folder: str
     audio_files: list[str]
+    download_url: str | None = None
 
 
 class AudiobookJobResponse(BaseModel):
@@ -106,6 +108,12 @@ anthropic_lm = dspy.LM(
 )
 outline_creator = OutlineCreator(anthropic_lm)
 chapter_creator = ChapterCreator(anthropic_lm)
+
+OUTPUT_ROOT = Path(os.getenv("BOOK_OUTPUT_DIR", "/tmp/book_foundry_outputs"))
+OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
+
+def _job_download_url(job_id: str, filename: str) -> str:
+    return f"/downloads/{job_id}/{filename}"
 
 
 @app.get("/api/health")
@@ -212,6 +220,7 @@ def _run_audiobook_job(job_id: str, payload: AudiobookRequest) -> None:
 
     try:
         audiobook_gen = AudiobookGenerator()
+        job_dir = OUTPUT_ROOT / job_id
         folder, audio_files = audiobook_gen.generate_audiobook(
             book_title=payload.title,
             outline=payload.outline,
@@ -221,13 +230,22 @@ def _run_audiobook_job(job_id: str, payload: AudiobookRequest) -> None:
             include_outline=payload.include_outline,
             voice_instructions=payload.instructions,
             progress_callback=progress_callback,
+            output_dir=job_dir,
         )
+        folder_name = Path(folder).name
+        zip_path = shutil.make_archive(
+            str(job_dir / folder_name),
+            "zip",
+            root_dir=Path(folder).parent,
+            base_dir=folder_name,
+        )
+        download_url = _job_download_url(job_id, Path(zip_path).name)
         _update_audiobook_job(
             job_id,
             status="completed",
             progress=100,
             completed_at=time.time(),
-            result={"folder": folder, "audio_files": audio_files},
+            result={"folder": folder, "audio_files": audio_files, "download_url": download_url},
         )
     except Exception as exc:
         _update_audiobook_job(job_id, status="error", error=str(exc))
@@ -336,6 +354,8 @@ def generate_audiobook(payload: AudiobookRequest):
 
     try:
         audiobook_gen = AudiobookGenerator()
+        job_id = uuid.uuid4().hex
+        job_dir = OUTPUT_ROOT / job_id
         folder, audio_files = audiobook_gen.generate_audiobook(
             book_title=payload.title,
             outline=payload.outline,
@@ -344,11 +364,22 @@ def generate_audiobook(payload: AudiobookRequest):
             speed=payload.speed,
             include_outline=payload.include_outline,
             voice_instructions=payload.instructions,
+            output_dir=job_dir,
         )
-        return AudiobookResponse(folder=folder, audio_files=audio_files)
+        folder_name = Path(folder).name
+        zip_path = shutil.make_archive(
+            str(job_dir / folder_name),
+            "zip",
+            root_dir=Path(folder).parent,
+            base_dir=folder_name,
+        )
+        download_url = _job_download_url(job_id, Path(zip_path).name)
+        return AudiobookResponse(folder=folder, audio_files=audio_files, download_url=download_url)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
+
+app.mount("/downloads", StaticFiles(directory=OUTPUT_ROOT), name="downloads")
 
 frontend_dist = Path(__file__).resolve().parent / "frontend" / "dist"
 if frontend_dist.is_dir():

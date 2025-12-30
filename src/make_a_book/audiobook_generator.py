@@ -51,11 +51,13 @@ class AudiobookGenerator:
             
         return chunks
     
-    def create_book_folder(self, book_title: str) -> Path:
+    def create_book_folder(self, book_title: str, output_dir: Path | None = None) -> Path:
         """Create a folder for the book with all content."""
         folder_name = f"{book_title.replace(' ', '_').lower()}_complete"
-        book_folder = Path(folder_name)
-        book_folder.mkdir(exist_ok=True)
+        base_dir = Path(output_dir) if output_dir else Path(".")
+        base_dir.mkdir(parents=True, exist_ok=True)
+        book_folder = base_dir / folder_name
+        book_folder.mkdir(parents=True, exist_ok=True)
         
         # Create subfolders
         (book_folder / "audio").mkdir(exist_ok=True)
@@ -174,11 +176,11 @@ class AudiobookGenerator:
     def generate_audiobook(self, book_title: str, outline: str, chapters: List[str],
                           voice: str = "alloy", speed: float = 1.0,
                           include_outline: bool = True, voice_instructions: str = None,
-                          progress_callback=None) -> Tuple[str, List[str]]:
+                          progress_callback=None, output_dir: Path | None = None) -> Tuple[str, List[str]]:
         """Generate complete audiobook with organized folder structure."""
         
         # Create book folder
-        book_folder = self.create_book_folder(book_title)
+        book_folder = self.create_book_folder(book_title, output_dir=output_dir)
         
         # Save all text content
         self.save_text_content(book_title, outline, chapters, book_folder)
