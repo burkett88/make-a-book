@@ -122,14 +122,6 @@ function App() {
                 <span className="metric-label">Est. Time</span>
                 <span className="metric-value">6-10 min</span>
               </div>
-              <div className="metric">
-                <span className="metric-label">Output</span>
-                <span className="metric-value">Markdown + Audio</span>
-              </div>
-              <div className="metric">
-                <span className="metric-label">Quality Mode</span>
-                <span className="metric-value">Editorial</span>
-              </div>
             </div>
             <div className="modal-actions">
               <button
